@@ -1,31 +1,34 @@
 pro run_prace2, ii
 
-cpu, TPOOL_NTHREADS = 16
+cpu, TPOOL_NTHREADS = 16           ;number of threads IDL may use
 
-; General script locations
-!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/arraySAVE') + ':' + !PATH
-!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/PSextraction') + ':' + !PATH
-!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/redshift_distort') + ':' + !PATH
-!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/LIO-LOI') + ':' + !PATH
-!PATH = Expand_Path('+/net/osiris/data/users/sanbus/PRACE4LOFAR/code') + ':' + !PATH
+; File locations
+loc_load_folder = '/net/machine/users/user/simulated_data/'
+loc_save_folder = '/net/machine/users/user/processed_data/'
 
+loc_load_d = loc_load_folder       ;Location of density files
+loc_load_v = loc_load_folder       ;Location of velocity files
+loc_load_x = loc_load_folder       ;Location of neutral fraction files
+loc_load_T = loc_load_folder       ;Location of spin temperature files
+loc_load_dTb = loc_load_folder     ;Location of 21cm field temperature files
 
-; File locations (resp. for velocity - density files and from the neutral field files
-locc = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/'
+loc_save_d = loc_save_folder       ;Location of density files
+loc_save_v = loc_save_folder       ;Location of velocity files
+loc_save_x = loc_save_folder       ;Location of neutral fraction files
+loc_save_T = loc_save_folder       ;Location of spin temperature files
+loc_save_dTb = loc_save_folder     ;Location of 21cm field temperature files
 
-loc_vd=locc+'grids/nc300/'
-;loc_x=locc+'reionization/500Mpc_f2_0_300/results/'
-loc_x='/net/osiris/data/users/sanbus/PRACE4LOFAR2/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/reionization/500Mpc_f2_0_300/results_new/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/reionization/500Mpc_f2_0_300/results/'
+;In this example I only use a folder in which the density and neutral fields are available.
+;The density field files look like : '/net/machine/users/user/simulated_data/6.905n_all.dat'
+;The neutral field files look like : /net/machine/users/user/simulated_data/xfrac3d_6.905.bin/'
 
-type='GIO'
-
-; Locations for saving files
-loc_real = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/real_space/'+type+'/'
-loc_reds = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/redshift_space/'+type+'/'
-
-; Find all redshifts present
-density_files=FILE_SEARCH(loc_vd+'*n_all.dat')
+;Find all redshifts present
+;In my case the redshift slices in the density folder do not always match the slices in the neutral field folder
+;The following is to find matching files
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+density_files=FILE_SEARCH(loc_load_d+'*n_all.dat')
 nslices=size(density_files,/n_elements)
+
 neutral_files=FILE_SEARCH(loc_x+'xfrac3d_*')
 nslices2=size(neutral_files,/n_elements)
 zz=fltarr(nslices)
