@@ -1,6 +1,14 @@
 pro run_prace2, ii
 
+;Computing parameters
 cpu, TPOOL_NTHREADS = 16           ;number of threads IDL may use
+
+
+;Simulation parameters
+simulation_box_pixels = 300        ;Number of pixels of the box on a side
+dimensions = 3                     ;Number of dimensions of the box
+simulation_box_cmpc = 200          ;Size of a side of the box in comoving Mpc
+
 
 ; File locations
 loc_load_folder = '/net/machine/users/user/simulated_data/'
@@ -18,41 +26,48 @@ loc_save_x = loc_save_folder       ;Location of neutral fraction files
 loc_save_T = loc_save_folder       ;Location of spin temperature files
 loc_save_dTb = loc_save_folder     ;Location of 21cm field temperature files
 
+
 ;In this example I only use a folder in which the density and neutral fields are available.
 ;The density field files look like : '/net/machine/users/user/simulated_data/6.905n_all.dat'
-;The neutral field files look like : /net/machine/users/user/simulated_data/xfrac3d_6.905.bin/'
+;The neutral field files look like : /net/machine/users/user/simulated_data/xfrac3d_6.905.bin'
+
 
 ;Find all redshifts present
 ;In my case the redshift slices in the density folder do not always match the slices in the neutral field folder
 ;The following is to find matching files
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 density_files=FILE_SEARCH(loc_load_d+'*n_all.dat')
-nslices=size(density_files,/n_elements)
+nslices_d=size(density_files,/n_elements)
 
 neutral_files=FILE_SEARCH(loc_x+'xfrac3d_*')
-nslices2=size(neutral_files,/n_elements)
+nslices_n=size(neutral_files,/n_elements)
 zz=fltarr(nslices)
 zzstr=strarr(nslices)
-ll=0
+count=0
 
+;The for loop can be removed using set operations.
 for i=0,nslices-1 do begin
-     AA = float(strmid(density_files(i),99,5))
-     kk=0
+     z_d = float(strmid(density_files(i),39,5))
+     count2=0
 
      for j=0,nslices2-1 do begin
-         if abs(AA - float(strmid(neutral_files(j),217,5))) le 0.01 then kk=1
-         print, strmid(neutral_files(j),217,5)
+         if abs(AA - float(strmid(neutral_files(j),39,5))) le 0.01 then begin
+         count2=1
+         break
      endfor
     
-     if kk eq 1 then ll = ll +1
-     if AA le 9.999 and kk eq 1 then zzstr(ll) = strmid(density_files(i),99,5)
-     if AA le 9.999 and kk eq 1 then zz(ll) = float(strmid(density_files(i),99,5))
-     if AA ge 10. and kk eq 1 then zzstr(ll) = strmid(density_files(i),99,6)
-     if AA ge 10. and kk eq 1 then zz(ll) = float(strmid(density_files(i),99,6))
+     if count2 eq 1 then count = count +1
+     if AA le 9.999 and count2 eq 1 then begin
+          zzstr(count) = strmid(density_files(i),39,5)
+          zz(count) = float(strmid(density_files(i),39,5))
+     endif
+     if AA ge 10. and count2 eq 1 thne begin
+          zzstr(count) = strmid(density_files(i),39,6)
+          zz(count) = float(strmid(density_files(i),39,6))
+     endif
 endfor
 
-zz=zz(1:ll)
-zzstr=zzstr(1:ll)
+zz=zz(1:count)
+zzstr=zzstr(1:count)
 
 ;Put files in order of increasing z
 order=sort(zz)
@@ -61,12 +76,12 @@ density_files=density_files(order)
 zzstr=zzstr(order)
 delvar, order
 
+++++++++++++++++++++++++++++++++++++++++++++++
 
-for i=0,ll do begin
-;     i+=11
-    density_file = FILE_SEARCH(loc_vd+zzstr(i)+'n_all.dat')
+for i=0,count do begin
+    density_file = FILE_SEARCH(loc_d+zzstr(i)+'n_all.dat')
     neutral_file = FILE_SEARCH(loc_x+'xfrac3d_'+zzstr(i)+'.bin')
-    velocity_file = FILE_SEARCH(loc_vd+zzstr(i)+'v_all.dat')
+    velocity_file = FILE_SEARCH(loc_v+zzstr(i)+'v_all.dat')
     neutral_frac_file = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/real_space/GIO/neutralfracs/neutralfrac__'+zzstr(i)+'.dat'
     
     density_array = fltarr(300,300,300)
