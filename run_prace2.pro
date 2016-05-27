@@ -1,0 +1,151 @@
+pro run_prace2, ii
+
+cpu, TPOOL_NTHREADS = 16
+
+; General script locations
+!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/arraySAVE') + ':' + !PATH
+!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/PSextraction') + ':' + !PATH
+!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/redshift_distort') + ':' + !PATH
+!PATH = Expand_Path('+/net/dataserver1/data/student/sanbus/routines/LIO-LOI') + ':' + !PATH
+!PATH = Expand_Path('+/net/osiris/data/users/sanbus/PRACE4LOFAR/code') + ':' + !PATH
+
+
+; File locations (resp. for velocity - density files and from the neutral field files
+locc = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/'
+
+loc_vd=locc+'grids/nc300/'
+;loc_x=locc+'reionization/500Mpc_f2_0_300/results/'
+loc_x='/net/osiris/data/users/sanbus/PRACE4LOFAR2/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/reionization/500Mpc_f2_0_300/results_new/ttt.astro.su.se/~garrelt/PRACE4LOFAR/500Mpc/reionization/500Mpc_f2_0_300/results/'
+
+type='GIO'
+
+; Locations for saving files
+loc_real = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/real_space/'+type+'/'
+loc_reds = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/redshift_space/'+type+'/'
+
+; Find all redshifts present
+density_files=FILE_SEARCH(loc_vd+'*n_all.dat')
+nslices=size(density_files,/n_elements)
+neutral_files=FILE_SEARCH(loc_x+'xfrac3d_*')
+nslices2=size(neutral_files,/n_elements)
+zz=fltarr(nslices)
+zzstr=strarr(nslices)
+ll=0
+
+for i=0,nslices-1 do begin
+     AA = float(strmid(density_files(i),99,5))
+     kk=0
+
+     for j=0,nslices2-1 do begin
+         if abs(AA - float(strmid(neutral_files(j),217,5))) le 0.01 then kk=1
+         print, strmid(neutral_files(j),217,5)
+     endfor
+    
+     if kk eq 1 then ll = ll +1
+     if AA le 9.999 and kk eq 1 then zzstr(ll) = strmid(density_files(i),99,5)
+     if AA le 9.999 and kk eq 1 then zz(ll) = float(strmid(density_files(i),99,5))
+     if AA ge 10. and kk eq 1 then zzstr(ll) = strmid(density_files(i),99,6)
+     if AA ge 10. and kk eq 1 then zz(ll) = float(strmid(density_files(i),99,6))
+endfor
+
+zz=zz(1:ll)
+zzstr=zzstr(1:ll)
+
+;Put files in order of increasing z
+order=sort(zz)
+zz=zz(order)
+density_files=density_files(order)
+zzstr=zzstr(order)
+delvar, order
+
+
+for i=0,ll do begin
+;     i+=11
+    density_file = FILE_SEARCH(loc_vd+zzstr(i)+'n_all.dat')
+    neutral_file = FILE_SEARCH(loc_x+'xfrac3d_'+zzstr(i)+'.bin')
+    velocity_file = FILE_SEARCH(loc_vd+zzstr(i)+'v_all.dat')
+    neutral_frac_file = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/real_space/GIO/neutralfracs/neutralfrac__'+zzstr(i)+'.dat'
+    
+    density_array = fltarr(300,300,300)
+    density_array_full = fltarr(600,600,600)
+    z_density_array = fltarr(300,300,300)
+    machine_density_array = fltarr(300,300,300)
+    neutral_array = fltarr(300,300,300)
+    z_neutral_array = fltarr(300,300,300)
+    velocity_array = fltarr(300,300,300)
+    scaling_due_to_velocity = fltarr(300,300,300)
+    
+    zaxis=fltarr(300)
+    z3D=fltarr([300,300,300])
+    sizze=0
+    
+    print, density_file
+    readdens_prace2, density_file, density_array_full, machine_density_array,sizze
+    
+    if sizze eq 600 then begin
+        density_array = rebin(density_array_full,300L,300L,300L)
+    endif else begin 
+        density_array = density_array_full
+    endelse
+    delvar, density_array_full
+    
+
+
+    if type eq 'GIO' then readneutral, neutral_file, neutral_array else read_neutral_frac, neutral_frac_file, neutralfraction
+    if type eq 'GOI' then begin
+    loc_conjugate_neutralfrac_list=0
+    goi_prace, zzstr(i),zzstr, loc_conjugate_neutralfrac
+    neutral_frac_file = '/net/osiris/data/users/sanbus/PRACE4LOFAR2/real_space/GIO/neutralfracs/neutralfrac__z'+zzstr(loc_conjugate_neutralfrac)+'.dat'
+    readneutral, neutral_file, neutral_array
+;     neutral_array= 1 -neutral_array
+    endif
+    if type eq 'LIO' then begin
+    lio_loi_reionization, density_array, neutralfraction, 1, neutral_array
+    endif
+    if type eq 'LOI' then begin
+    lio_loi_reionization, density_array, neutralfraction, 0, neutral_array
+    endif
+    
+    print, min(density_array), mean(density_array), max(density_array)
+    print, min(neutral_array), mean(neutral_array), max(neutral_array)
+    
+; ; ; ; ; ; ; ; ;     ; Make redshift array
+; ; ; ; ; ; ; ; ;     makez3d, zz(i), zaxis, z3D
+; ; ; ; ; ; ; ; ;     readvel, velocity_file, machine_density_array, zz(i), velocity_array
+; ; ; ; ; ; ; ; ;     delvar, machine_density_array
+; ; ; ; ; ; ; ; ;     print, 'density params', min(density_array),mean(density_array),max(density_array)
+; ; ; ; ; ; ; ; ;     print, 'neutral params',  min(neutral_array),mean(neutral_array),max(neutral_array)
+; ; ; ; ; ; ; ; ;     print, 'velocity params', min(abs(velocity_array)),mean(abs(velocity_array)),max(abs(velocity_array))
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     vel_scale,velocity_array/100000.,zz(i),500./300.,scaling_due_to_velocity
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     rsd, 1+density_array,neutral_array, velocity_array, zaxis, z_density_array,z_neutral_array
+; ; ; ; ; ; ; ; ;     z_density_array -=1
+; ; ; ; ; ; ; ; ;     delvar, velocity_array
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     print, 'z density params', min(z_density_array),mean(z_density_array),max(z_density_array)
+; ; ; ; ; ; ; ; ;     print, 'z neutral params',  min(z_neutral_array),mean(z_neutral_array),max(z_neutral_array)    
+; ; ; ; ; ; ; ; ;     print, 'scaling due to vel params',  min(scaling_due_to_velocity),mean(scaling_due_to_velocity),max(scaling_due_to_velocity)
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     ;Save slices of all fields
+; ; ; ; ; ; ; ; ;     run_saveslice, density_array, z_density_array, neutral_array, z_neutral_array, scaling_due_to_velocity,zzstr(i),zz(i),loc_real,loc_reds
+; ; ; ; ; ; ; ; ;     
+; ; ; ; ; ; ; ; ;     ;Sace redshifted cubes
+; ; ; ; ; ; ; ; ;     save3darray_bin, z_density_array, '/net/osiris/data/users/sanbus/PRACE4LOFAR/redshift_space/'+type+'/Cubes/density'+type+'_cube_rsd_'+zzstr(i)+'.bin'
+; ; ; ; ; ; ; ; ;     save3darray_bin, z_neutral_array, '/net/osiris/data/users/sanbus/PRACE4LOFAR/redshift_space/'+type+'/Cubes/neutral'+type+'_cube_rsd_'+zzstr(i)+'.bin'
+; ; ; ; ; ; ; ; ;     save3darray_bin, double(24*((1+zz(i))/10.)^0.5*z_neutral_array*(1+z_density_array)*scaling_due_to_velocity), '/net/osiris/data/users/sanbus/PRACE4LOFAR/redshift_space/'+type+'/Cubes/neutral'+type+'_cube_rsd'+zzstr(i)+'.bin'
+    
+    ; Single=0: all, Single=1 Pd, =2 Px, =3 Pxd, =4 Cxd, =5 Cxdd, =6 Cxxd, =7 PdTb
+    single=7
+;     type='_'
+    runps, density_array, neutral_array,1, zzstr(i),zz(i), loc_real,type+'fullreionization', single
+;     runps, z_density_array, z_neutral_array,double(scaling_due_to_velocity),zzstr(i),zz(i), loc_reds, '_RSD_'+type, single
+;     stop
+;     if i eq nslices-1 then stop
+endfor
+
+
+end
+     
