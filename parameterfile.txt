@@ -1,0 +1,92 @@
+#File containing all parameters needed to run the EoR power spectrum code
+#Please note that in reading the file all lines which start with a space or with a hash (#) will be ignored.
+#All other lines should be of the sort 'variable = 10'.
+#Spaces are ignored in these lines.
+
+#
+#Computing parameters
+#
+
+#number of threads IDL may use
+nthreads = 16        
+
+
+#
+#Simulation parameters
+#
+
+#Number of pixels of the box on a side
+simulation_box_pixels = 300       
+
+#Number of dimensions of the box
+dimensions = 3     
+
+#Size of a side of the box in comoving Mpc
+simulation_box_cmpc = 200 
+
+#Additional information on the simulation, which should go into the file names
+simulation_name = 'EoRSIM_pix'+STR(simulation_box_pixels)+'_cmpc'+STR(simulation_box_cmpc)
+
+
+#
+#PS extraction parameters
+#
+
+#Number of bins to calculate the power spectrum for
+ps_bins_num = 100
+
+#Linear or logarithmic bins ('lin' or 'log')
+ps_bins_type = 'linear'      ;linear or logarithmic
+
+#
+#Decide which spectra to compute
+# which_spectra_to_compute=0: all, which_spectra_to_compute=1 Pd, =2 Px, =3 Pxd, =4 Cxd, =5 Cxdd, =6 Cxxd, =7 PdTb, =8 Pd, Px and PdTb
+which_spectra_to_compute = 0
+
+#
+#File locations
+#
+loc_load_folder = '/net/machine/data/users/user/simulated_data/'
+loc_save_folder = '/net/machine/data/users/user/processed_data/'
+
+loc_save_folder_PS = loc_save_folder + 'PS/'
+loc_save_folder_neutral_fraction = loc_save_folder +' neutral_fraction/'
+
+#
+#Subfolders
+#
+
+#Location of density files
+loc_load_d = loc_load_folder
+
+#Location of velocity files
+loc_load_v = loc_load_folder
+
+#Location of neutral fraction files
+loc_load_x = loc_load_folder
+
+#Location of spin temperature files
+loc_load_T = loc_load_folder
+
+#Location of 21cm field temperature files
+loc_load_dTb = loc_load_folder    
+
+
+#
+#Structure of the file names
+#
+
+#In this example I only use a folder in which the density and neutral fields are available.
+#The density field files look like : '/net/machine/users/user/simulated_data/6.905n_all.dat'
+#The neutral field files look like : /net/machine/users/user/simulated_data/xfrac3d_6.905.bin'
+
+#Structure of the density field path, around the redshift information
+filename_d_start = loc_load_d
+filename_d_end = 'n_all.dat'
+
+#Structure of the neutral field path, around the redshift information
+filename_x_start = loc_load_x + 'xfrac3d_'
+filename_x_end = '.bin'
+
+#Number of decimals in which the redshift is specified in the filenames.
+number_of_decimals_z = 3
